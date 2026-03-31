@@ -1,0 +1,11 @@
+{
+  "name": "ble_led",
+  "version": "1.0.0",
+  "capabilities": [
+    "ble",
+    "hid",
+    "gpio.write",
+    "gpio.read"
+  ],
+  "memory_quota": 65536
+}
