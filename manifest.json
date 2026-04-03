@@ -1,9 +1,10 @@
 {
-  "name": "ble_led",
+  "name": "akira_mouse",
   "version": "1.0.0",
   "capabilities": [
     "ble",
     "hid",
+    "adc",
     "gpio.write",
     "gpio.read"
   ],

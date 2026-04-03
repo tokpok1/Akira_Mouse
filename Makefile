@@ -1,6 +1,6 @@
-# ble_led - AkiraOS WASM Application Makefile
+# akira_mouse - AkiraOS WASM Application Makefile
 
-APP_NAME   = ble_led
+APP_NAME   = akira_mouse
 WASI_SDK  ?= /opt/wasi-sdk
 CC         = $(WASI_SDK)/bin/clang
 

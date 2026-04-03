@@ -1,43 +1,55 @@
-/*
- * Copyright (c) 2025 AkiraOS Contributors
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * @file ble_led.c
- * @brief BLE LED control demo — Arduino-style BLE API for AkiraOS WASM.
- *
- * Sets up a custom BLE GATT service with a single writable characteristic.
- * A connected peer (e.g. nRF Connect) can write 0x01 to turn the LED on
- * and 0x00 to turn it off.
- *
- * Matches the Arduino BLE example pattern:
- *
- *   BLEService ledService("19B10000-E8F2-537E-4F6C-D104768A1214");
- *   BLEByteCharacteristic switchChar("19B10001-...", BLERead | BLEWrite);
- *
- * Required capabilities: "ble", "gpio.write", "gpio.read"
- *
- * Compile with:
- *   cd wasm_sample && ./build_wasm_apps.sh ble_led
- */
 
 #include "akira_api.h"
-
-/* ---- Service / Characteristic UUIDs (custom 128-bit) ---- */
-//#define LED_SERVICE_UUID  "19B10000-E8F2-537E-4F6C-D104768A1214"
-//#define SWITCH_CHAR_UUID  "19B10001-E8F2-537E-4F6C-D104768A1214"
-
-/* ---- GPIO pin for the LED (akiraconsole onboard LED) ---- */
-#define LED_PIN   48
-
+#include "filtration.h"
 /* ---- BLE event buffer: 4 header + up to 64 data bytes ---- */
 #define EVT_BUF_LEN 68
 
+#define FLEX1_CH 3
+#define FLEX2_CH 4
+//--------------------------------------
+#define SIZE 8
+int saturation(int value, int min, int max)
+{
+    int result = min;
+    if (value < min)
+    {
+        result = min;
+    }
+    if (value > max)
+    {
+        result = max;
+    }
+    else
+    {
+        result = value;
+    }
+    return result;
+}
+
+int moving_average(int new_value)
+{
+    static int buffer[SIZE] = {0};
+    static int index = 0;
+    static int sum = 0;
+    sum -= buffer[index];//отнимаем от всей суммы старое значение
+    buffer[index] = new_value;
+    sum += new_value;
+
+    index = (index + 1) % SIZE;//делает буфер кольцевым
+
+    return sum / SIZE;//возвращает среднее
+}
+//--------------------------------------------------
 int main(void)
 {
-    /* ---- 3. Configure advertising ---- */
+    int32_t sample;
+    int adc_ok;
+    int saturation_flex = 0;
+    int filtered_flex = 0;
+
     ble_set_local_name("AkiraOS_Mouse");
 
-    /* ---- 4. Start BLE (lazy-inits the BT stack in BLE_APP mode) ---- */
+    /* ---- Start BLE (lazy-inits the BT stack in BLE_APP mode) ---- */
     int ret = ble_init();
     if (ret < 0) {
         printf("ble: init failed (%d) — HID mode active?");
@@ -53,10 +65,6 @@ int main(void)
         printf("hid init failed");
     }
 
-    /* ---- 5. Initialise LED pin as output, default off ---- */
-    gpio_configure(LED_PIN, GPIO_OUTPUT | GPIO_OUTPUT_INIT_LOW);
-    uint8_t led_state = 0;
-
     /* ---- 6. Main event loop ---- */
     uint8_t evt_buf[EVT_BUF_LEN];
 
@@ -67,18 +75,28 @@ int main(void)
             printf("ble_led: ble ok");
 
         } else if (evt == BLE_EVT_DISCONNECTED) {
-            printf("ble_led: ble not ok — re-advertising");
+            printf("akira_mouse: ble not ok — re-advertising");
             ble_advertise();
         }
+
+        
         if (hid_is_connected()) {
-            printf("ble_led: mouse ok");
-            hid_mouse_move(10, -5);
-            delay(500000);
-            hid_mouse_btn_press(0x01);
-            delay(50000);
-            hid_mouse_btn_release(0x01);
+            printf("akira_mouse: mouse ok");
+            //hid_mouse_move(10, -5);
+            //printf("flex1: %d  flex2: %d\n", flex1, flex2);
+            delay(1000000);
+            //hid_mouse_btn_press(0x01);
+            //delay(50000);
+            //hid_mouse_btn_release(0x01);
         }
- 
+        adc_ok = adc_read(0, 3, &sample);
+        saturation_flex = saturation(sample , 0, 2000);
+        filtered_flex = moving_average(saturation_flex);
+        if (adc_ok == 0) {
+            printf("ADC1 channel 3 value = %d\n", filtered_flex);
+        } else {
+            printf("ADC read error: %d\n", adc_ok);
+        }
         /* Yield 10 ms to avoid spinning the CPU at 100% */
         delay(10000); /* 10 000 µs = 10 ms */
     }
