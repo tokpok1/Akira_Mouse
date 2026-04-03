@@ -1,6 +1,5 @@
 
 #include "akira_api.h"
-#include "filtration.h"
 /* ---- BLE event buffer: 4 header + up to 64 data bytes ---- */
 #define EVT_BUF_LEN 68
 
@@ -89,7 +88,7 @@ int main(void)
             //delay(50000);
             //hid_mouse_btn_release(0x01);
         }
-        adc_ok = adc_read(0, 3, &sample);
+        adc_ok = adc_read(1, 3, &sample);
         saturation_flex = saturation(sample , 0, 2000);
         filtered_flex = moving_average(saturation_flex);
         if (adc_ok == 0) {
