@@ -6,7 +6,10 @@
     "hid",
     "adc",
     "gpio.write",
-    "gpio.read"
+    "gpio.read",
+    "input.read",
+    "i2c",
+    "sensor.read"
   ],
   "memory_quota": 65536
 }
